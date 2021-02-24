@@ -1,0 +1,57 @@
+- name: Deploy BBB-Chat
+  hosts: {{ hosts }}
+  tasks:
+  - name: Add user bbb-chat
+    become: yes
+    ansible.buitlin.user:
+    - name: bbb-chat
+      state: present
+      system: yes
+  - name: Clone project
+    become: yes
+    ansible.builtin.git:
+    - dest: /home/bbb-chat/bbb-chat
+      repo: https://github.com/myOmikron/bbb-chat.git
+  - name: Add venv and install requirements
+    become: yes
+    ansible.builtin.pip:
+    - requirements: /home/bbb-chat/bbb-chat/requirements.txt
+      virtualenv: /home/bbb-chat/bbb-chat/venv
+      virtualenv_python: /usr/bin/env python3
+  - name: Move nginx file
+    become: yes
+    ansible.builtin.copy:
+    - src: /home/bbb-chat/bbb-chat/bbb-chat.nginx
+      remote_src: yes
+      dest: /etc/bigbluebutton/nginx/
+  - name: Reload nginx
+    become: yes
+    ansible.builtin.systemd:
+    - name: nginx
+      state: reloaded
+  - name: Move systemd file
+    become: yes
+    ansible.builtin.copy:
+    - src: /home/bbb-chat/bbb-chat/bbb-chat.service
+      remote_src: yes
+      dest: /etc/systemd/system/multi-user.target.wants/
+  - name: Set permissions
+    become: yes
+    ansible.builtin.file:
+    - owner: bbb-chat
+      path: /home/bbb-chat/
+      recurse: yes
+  - name: Start and enable bbb-chat
+    become: yes
+    ansible.builtin.systemd:
+    - name: bbb-chat
+      daemon_reload: yes
+      enabled: yes
+      state: started
+  - name: Migrate bbb-chat
+    become: bbb-chat
+    django_manage:
+      command: migrate
+      app_path: /home/bbb-chat/bbb-chat/bbb_chat/
+      virtualenv: /home/bbb-chat/bbb-chat/venv/
+   
