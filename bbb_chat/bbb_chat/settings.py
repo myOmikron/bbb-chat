@@ -49,6 +49,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'redis_handler.RedisStartupMiddleware',
 ]
 
 ROOT_URLCONF = 'bbb_chat.urls'
