@@ -4,7 +4,7 @@ from threading import Thread
 from django.core.exceptions import MiddlewareNotUsed, AppRegistryNotReady
 from django.apps.registry import apps
 
-from redis_handler.redis import startup, register_handler
+from redis_handler.connection import startup, register_handler
 from redis_handler.handlers import on_join, on_leave, on_chat_msg, RequestThread
 from redis_handler.state import State
 
