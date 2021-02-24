@@ -3,7 +3,7 @@
   tasks:
   - name: Add user bbb-chat
     become: yes
-    ansible.buitlin.user:
+    ansible.builtin.user:
     - name: bbb-chat
       state: present
       system: yes
