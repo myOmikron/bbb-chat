@@ -7,6 +7,8 @@ from django.views.generic import TemplateView
 
 from api.models import Chat
 from bbb_chat import settings
+from redis_handler.redis import send
+from redis_handler.message_builder import build_message
 
 
 def validate_request(args, method):
@@ -46,7 +48,7 @@ class SendChatMessage(TemplateView):
                 {"success": False, "message": " Parameter message is mandatory but missing."},
                 status=400
             )
-        # TODO Call bridge to bbb chat
+        send(build_message(args["meeting_id"], args["user_name"], args["message"]))
 
 
 class StartChatForMeeting(TemplateView):
