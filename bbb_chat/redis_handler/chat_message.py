@@ -8,7 +8,7 @@ from threading import Thread
 
 import requests
 
-from api.models import Chat
+from redis_handler.state import State
 
 
 logger = logging.getLogger(__name__)
@@ -19,9 +19,8 @@ def on_chat_msg(header, body):
     if body["chatId"] != "MAIN-PUBLIC-GROUP-CHAT":
         return
 
-    try:
-        chat = Chat.objects.get(meeting_id=header["meetingId"])
-    except Chat.DoesNotExist:
+    chat = State.instance.get(header["meetingId"])
+    if not chat:
         return
 
     if not chat.callback_uri or not chat.callback_secret:
@@ -33,11 +32,12 @@ def on_chat_msg(header, body):
         "message": body["msg"]["message"]
     }
 
-    call = os.path.basename(chat.callback_uri.rstrip("/")) + json.dumps(params)
-
-    params["checksum"] = hashlib.sha512(
-        (call + chat.callback_secret + str(int(datetime.now().timestamp()))).encode("utf-8")
-    ).hexdigest()
+    params["checksum"] = hashlib.sha512((
+        os.path.basename(chat.callback_uri.rstrip("/"))
+        + json.dumps(params)
+        + chat.callback_secret
+        + str(int(datetime.now().timestamp()))
+    ).encode("utf-8")).hexdigest()
 
     queue.put((chat.callback_uri, json.dumps(params)))
 
