@@ -1,4 +1,5 @@
 import logging
+import os
 from queue import Queue
 import json
 import hashlib
@@ -32,7 +33,7 @@ def on_chat_msg(header, body):
         "message": body["msg"]["message"]
     }
 
-    call = chat.callback_uri + json.dumps(params)
+    call = os.path.basename(chat.callback_uri.rstrip("/")) + json.dumps(params)
 
     params["checksum"] = hashlib.sha512(
         (call + chat.callback_secret + str(int(datetime.now().timestamp()))).encode("utf-8")
