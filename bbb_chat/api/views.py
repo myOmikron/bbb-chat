@@ -5,10 +5,10 @@ from datetime import datetime
 from django.http import JsonResponse
 from django.views.generic import TemplateView
 
-from api.models import Chat
 from bbb_chat import settings
 from redis_handler.redis import send
 from redis_handler.message_builder import build_message
+from redis_handler.state import State
 
 
 def validate_request(args, method):
@@ -48,6 +48,7 @@ class SendChatMessage(TemplateView):
                 {"success": False, "message": " Parameter message is mandatory but missing."},
                 status=400
             )
+
         send(build_message(args["meeting_id"], args["user_name"], args["message"]))
 
 
@@ -87,17 +88,17 @@ class StartChatForMeeting(TemplateView):
                     },
                     status=400
                 )
-        chat, created = Chat.objects.get_or_create(
-            meeting_id=args["meeting_id"],
-            chat_user_name=args["chat_user"],
-            callback_uri="" if "callback_uri" not in args else args["callback_uri"],
-            callback_secret="" if "callback_secret" not in args else args["callback_secret"],
-        )
-        if not created:
+
+        if State.instance.get(args["meeting_id"]):
             return JsonResponse({"success": False, "message": "Chat is already registered"}, status=304)
-        chat.save()
-        # TODO Register listener
-        return JsonResponse({"success": True, "message": "Chat registered successfully"})
+        else:
+            State.instance.add(
+                meeting_id=args["meeting_id"],
+                chat_user=args["chat_user"],
+                callback_uri="" if "callback_uri" not in args else args["callback_uri"],
+                callback_secret="" if "callback_secret" not in args else args["callback_secret"],
+            )
+            return JsonResponse({"success": True, "message": "Chat registered successfully"})
 
 
 class EndChatForMeeting(TemplateView):
@@ -112,10 +113,9 @@ class EndChatForMeeting(TemplateView):
                 {"success": False, "message": " Parameter meeting_id is mandatory but missing."},
                 status=400
             )
-        try:
-            chat = Chat.objects.get(meeting_id=args["meeting_id"])
-            chat.delete()
-            # TODO Stop listener
-        except Chat.DoesNotExist:
+
+        if State.instance.get(args["meeting_id"]):
+            State.instance.remove(args["meeting_id"])
+            return JsonResponse({"success": True, "message": "Chat was successfully ended"})
+        else:
             return JsonResponse({"success": False, "message": "Chat was not found"}, status=404)
-        return JsonResponse({"success": True, "message": "Chat was successfully ended"})
