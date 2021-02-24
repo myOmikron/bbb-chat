@@ -6,7 +6,7 @@ from django.http import JsonResponse
 from django.views.generic import TemplateView
 
 from bbb_chat import settings
-from redis_handler.redis import send
+from redis_handler.connection import send
 from redis_handler.message_builder import build_message
 from redis_handler.state import State
 
