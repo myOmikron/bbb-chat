@@ -12,7 +12,24 @@ from redis_handler.state import State
 
 
 logger = logging.getLogger(__name__)
-queue = Queue()
+
+
+def on_join(header, body):
+    chat = State.instance.get(header["meetingId"])
+    if chat:
+        chat.chat_user_id = header["userId"]
+        chat.save()
+    else:
+        logger.debug("Ignoring joining user "+body["name"]+" in meeting "+header["meetingId"])
+
+
+def on_leave(header, _):
+    chat = State.instance.get(header["meetingId"])
+    if chat:
+        chat.chat_user_id = None
+        chat.save()
+    else:
+        logger.debug("Ignoring leaving user " + header["userId"] + " in meeting " + header["meetingId"])
 
 
 def on_chat_msg(header, body):
@@ -39,17 +56,17 @@ def on_chat_msg(header, body):
         + str(int(datetime.now().timestamp()))
     ).encode("utf-8")).hexdigest()
 
-    queue.put((chat.callback_uri, json.dumps(params)))
+    RequestThread.queue.put((chat.callback_uri, json.dumps(params)))
 
 
-class Worker(Thread):
+class RequestThread(Thread):
 
-    running: bool
+    queue = Queue()
 
     def run(self):
         self.running = True
         while self.running:
-            uri, data = queue.get()
+            uri, data = self.queue.get()
             requests.post(uri, data=data)
 
     def stop(self):
