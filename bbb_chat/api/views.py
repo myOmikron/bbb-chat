@@ -29,7 +29,14 @@ def validate_request(args, method):
 class SendChatMessage(TemplateView):
 
     def post(self, request, *args, **kwargs):
-        args = json.loads(request.body)
+        try:
+            args = json.loads(request.body)
+        except json.decoder.JSONDecodeError:
+            return JsonResponse(
+                {"success": False, "message": "Decoding data failed"},
+                status=400,
+                reason="Decoding data failed"
+            )
         validated = validate_request(args, "sendChatMessage")
         if not validated["success"]:
             return JsonResponse(validated, status=400)
@@ -58,7 +65,14 @@ class SendChatMessage(TemplateView):
 class StartChatForMeeting(TemplateView):
 
     def post(self, request, *args, **kwargs):
-        args = json.loads(request.body)
+        try:
+            args = json.loads(request.body)
+        except json.decoder.JSONDecodeError:
+            return JsonResponse(
+                {"success": False, "message": "Decoding data failed"},
+                status=400,
+                reason="Decoding data failed"
+            )
         validated = validate_request(args, "startChatForMeeting")
         if not validated["success"]:
             return JsonResponse(validated, status=400)
@@ -111,7 +125,14 @@ class StartChatForMeeting(TemplateView):
 class EndChatForMeeting(TemplateView):
 
     def post(self, request, *args, **kwargs):
-        args = json.loads(request.body)
+        try:
+            args = json.loads(request.body)
+        except json.decoder.JSONDecodeError:
+            return JsonResponse(
+                {"success": False, "message": "Decoding data failed"},
+                status=400,
+                reason="Decoding data failed"
+            )
         validated = validate_request(args, "endChatForMeeting")
         if not validated["success"]:
             return JsonResponse(validated, status=400)
