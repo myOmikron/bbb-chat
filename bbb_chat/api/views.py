@@ -19,7 +19,7 @@ def validate_request(args, method):
     for i in range(settings.SHARED_SECRET_TIME_DELTA):
         tmp_timestamp = current_timestamp - i
         call = method + json.dumps(args)
-        if hashlib.sha512(call + settings.SHARED_SECRET + str(tmp_timestamp)) == args["checksum"]:
+        if hashlib.sha512((call + settings.SHARED_SECRET + str(tmp_timestamp)).encode("utf-8")).hexdigest() == args["checksum"]:
             ret["success"] = True
             ret["message"] = "Checksum is correct"
             break
@@ -29,24 +29,27 @@ def validate_request(args, method):
 class SendChatMessage(TemplateView):
 
     def post(self, request, *args, **kwargs):
-        args = json.loads(request.POST.decode("utf-8"))
+        args = json.loads(request.body)
         validated = validate_request(args, "sendChatMessage")
         if not validated["success"]:
             return JsonResponse(validated, status=400)
         if "meeting_id" not in args:
             return JsonResponse(
-                {"success": False, "message": " Parameter meeting_id is mandatory but missing."},
-                status=400
+                {"success": False, "message": "Parameter meeting_id is mandatory but missing."},
+                status=400,
+                reason="Parameter meeting_id is mandatory but missing."
             )
         if "user_name" not in args:
             return JsonResponse(
-                {"success": False, "message": " Parameter user_name is mandatory but missing."},
-                status=400
+                {"success": False, "message": "Parameter user_name is mandatory but missing."},
+                status=400,
+                reason="Parameter meeting_id is mandatory but missing."
             )
         if "message" not in args:
             return JsonResponse(
-                {"success": False, "message": " Parameter message is mandatory but missing."},
-                status=400
+                {"success": False, "message": "Parameter message is mandatory but missing."},
+                status=400,
+                reason="Parameter meeting_id is mandatory but missing."
             )
 
         send(build_message(args["meeting_id"], args["user_name"], args["message"]))
@@ -55,19 +58,21 @@ class SendChatMessage(TemplateView):
 class StartChatForMeeting(TemplateView):
 
     def post(self, request, *args, **kwargs):
-        args = json.loads(request.POST.decode("utf-8"))
+        args = json.loads(request.body)
         validated = validate_request(args, "startChatForMeeting")
         if not validated["success"]:
             return JsonResponse(validated, status=400)
         if "meeting_id" not in args:
             return JsonResponse(
-                {"success": False, "message": " Parameter meeting_id is mandatory but missing."},
-                status=400
+                {"success": False, "message": "Parameter meeting_id is mandatory but missing."},
+                status=400,
+                reason="Parameter meeting_id is mandatory but missing."
             )
         if "chat_user" not in args:
             return JsonResponse(
-                {"success": False, "message": " Parameter chat_user is mandatory but missing."},
-                status=400
+                {"success": False, "message": "Parameter chat_user is mandatory but missing."},
+                status=400,
+                reason="Parameter meeting_id is mandatory but missing."
             )
         if "callback_uri" not in args:
             if "callback_secret" in args:
@@ -76,7 +81,8 @@ class StartChatForMeeting(TemplateView):
                         "success": False,
                         "message": "Parameter callback_uri is mandatory when specifying callback_secret, but missing."
                     },
-                    status=400
+                    status=400,
+                    reason="Parameter meeting_id is mandatory but missing."
                 )
 
         if "callback_secret" not in args:
@@ -86,7 +92,8 @@ class StartChatForMeeting(TemplateView):
                         "success": False,
                         "message": "Parameter callback_secret is mandatory when specifying callback_uri, but missing."
                     },
-                    status=400
+                    status=400,
+                    reason="Parameter meeting_id is mandatory but missing."
                 )
 
         if State.instance.get(args["meeting_id"]):
@@ -104,18 +111,20 @@ class StartChatForMeeting(TemplateView):
 class EndChatForMeeting(TemplateView):
 
     def post(self, request, *args, **kwargs):
-        args = json.loads(request.POST.decode("utf-8"))
+        args = json.loads(request.body)
         validated = validate_request(args, "endChatForMeeting")
         if not validated["success"]:
             return JsonResponse(validated, status=400)
         if "meeting_id" not in args:
             return JsonResponse(
                 {"success": False, "message": " Parameter meeting_id is mandatory but missing."},
-                status=400
+                status=400,
+                reason="Parameter meeting_id is mandatory but missing."
             )
 
         if State.instance.get(args["meeting_id"]):
             State.instance.remove(args["meeting_id"])
             return JsonResponse({"success": True, "message": "Chat was successfully ended"})
         else:
-            return JsonResponse({"success": False, "message": "Chat was not found"}, status=404)
+            return JsonResponse({"success": False, "message": "Chat was not found"}, status=404,
+                                reason="Chat was not found")
