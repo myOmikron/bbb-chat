@@ -28,7 +28,7 @@ def validate_request(args, method):
 
 class SendChatMessage(TemplateView):
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request, meeting_id="", *args, **kwargs):
         try:
             args = json.loads(request.body)
         except json.decoder.JSONDecodeError:
@@ -40,12 +40,6 @@ class SendChatMessage(TemplateView):
         validated = validate_request(args, "sendChatMessage")
         if not validated["success"]:
             return JsonResponse(validated, status=400)
-        if "meeting_id" not in args:
-            return JsonResponse(
-                {"success": False, "message": "Parameter meeting_id is mandatory but missing."},
-                status=400,
-                reason="Parameter meeting_id is mandatory but missing."
-            )
         if "user_name" not in args:
             return JsonResponse(
                 {"success": False, "message": "Parameter user_name is mandatory but missing."},
@@ -59,7 +53,7 @@ class SendChatMessage(TemplateView):
                 reason="Parameter message is mandatory but missing."
             )
 
-        chat = State.instance.get(args["meeting_id"])
+        chat = State.instance.get(meeting_id)
         if chat:
             if chat.chat_user_id:
                 user = args["user_name"]

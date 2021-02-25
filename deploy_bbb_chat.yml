@@ -1,57 +1,69 @@
 - name: Deploy BBB-Chat
-  hosts: {{ hosts }}
+  hosts: col-bbb-dev
+  vars:
+  - ansible_python_interpreter: /usr/bin/env python3
   tasks:
   - name: Add user bbb-chat
     become: yes
     ansible.builtin.user:
-    - name: bbb-chat
+      name: bbb-chat
       state: present
       system: yes
   - name: Clone project
     become: yes
     ansible.builtin.git:
-    - dest: /home/bbb-chat/bbb-chat
+      dest: /home/bbb-chat/bbb-chat
       repo: https://github.com/myOmikron/bbb-chat.git
-  - name: Add venv and install requirements
+  - name: Add Venv
+    become: yes
+    ansible.builtin.command: 
+      chdir: /home/bbb-chat/bbb-chat
+      cmd: python3.9 -m venv venv 
+  - name: Install requirements
     become: yes
     ansible.builtin.pip:
-    - requirements: /home/bbb-chat/bbb-chat/requirements.txt
-      virtualenv: /home/bbb-chat/bbb-chat/venv
-      virtualenv_python: /usr/bin/env python3
+      requirements: /home/bbb-chat/bbb-chat/requirements.txt
+      executable: /home/bbb-chat/bbb-chat/venv/bin/pip3.9
   - name: Move nginx file
     become: yes
     ansible.builtin.copy:
-    - src: /home/bbb-chat/bbb-chat/bbb-chat.nginx
+      src: /home/bbb-chat/bbb-chat/bbb-chat.nginx
       remote_src: yes
       dest: /etc/bigbluebutton/nginx/
   - name: Reload nginx
     become: yes
     ansible.builtin.systemd:
-    - name: nginx
+      name: nginx
       state: reloaded
   - name: Move systemd file
     become: yes
     ansible.builtin.copy:
-    - src: /home/bbb-chat/bbb-chat/bbb-chat.service
+      src: /home/bbb-chat/bbb-chat/bbb-chat.service
       remote_src: yes
-      dest: /etc/systemd/system/multi-user.target.wants/
+      dest: /lib/systemd/system/
+  - name: Link systemd
+    become: yes
+    ansible.builtin.file:
+      src: /lib/systemd/system/bbb-chat.service
+      dest: /etc/systemd/system/multi-user.target.wants/bbb-chat.service 
+      state: link
   - name: Set permissions
     become: yes
     ansible.builtin.file:
-    - owner: bbb-chat
+      owner: bbb-chat
       path: /home/bbb-chat/
       recurse: yes
   - name: Start and enable bbb-chat
     become: yes
     ansible.builtin.systemd:
-    - name: bbb-chat
+      name: bbb-chat
       daemon_reload: yes
       enabled: yes
       state: started
   - name: Migrate bbb-chat
-    become: bbb-chat
-    django_manage:
-      command: migrate
-      app_path: /home/bbb-chat/bbb-chat/bbb_chat/
-      virtualenv: /home/bbb-chat/bbb-chat/venv/
+    become: yes
+    become_user: bbb-chat
+    ansible.builtin.command:
+      chdir: /home/bbb-chat/bbb-chat/bbb_chat 
+      cmd: /home/bbb-chat/bbb-chat/venv/bin/python3.9 manage.py migrate
    

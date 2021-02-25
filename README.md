@@ -69,13 +69,12 @@ Parameter        | Required | Type  | Description
 :---:            | :---:    | :---: | :---:
 meeting_id       | Yes      | str   | internalMeetingId, returned by `create` call
 
-### sendMessage
+### sendChatMessage/<meeting_id>
 - Method: `POST`
 
 Sends a message from a user_name to a given meeting_id. startChatForMeeting has to be called before sendMessage can be called.
 
 Parameter        | Required | Type  | Description
 :---:            | :---:    | :---: | :---:
-meeting_id       | Yes      | str   | internalMeetingId, returned by `create` call
 user_name        | Yes      | str   | Username from which the message was sent
 message          | Yes      | str   | Unformatted message
