@@ -29,7 +29,7 @@ def validate_request(args, method):
 class SendChatMessage(TemplateView):
 
     def post(self, request, *args, **kwargs):
-        args = json.load(request.POST)
+        args = json.loads(request.POST.decode("utf-8"))
         validated = validate_request(args, "sendChatMessage")
         if not validated["success"]:
             return JsonResponse(validated, status=400)
@@ -55,7 +55,7 @@ class SendChatMessage(TemplateView):
 class StartChatForMeeting(TemplateView):
 
     def post(self, request, *args, **kwargs):
-        args = json.load(request.POST)
+        args = json.loads(request.POST.decode("utf-8"))
         validated = validate_request(args, "startChatForMeeting")
         if not validated["success"]:
             return JsonResponse(validated, status=400)
@@ -104,7 +104,7 @@ class StartChatForMeeting(TemplateView):
 class EndChatForMeeting(TemplateView):
 
     def post(self, request, *args, **kwargs):
-        args = json.load(request.POST)
+        args = json.loads(request.POST.decode("utf-8"))
         validated = validate_request(args, "endChatForMeeting")
         if not validated["success"]:
             return JsonResponse(validated, status=400)
