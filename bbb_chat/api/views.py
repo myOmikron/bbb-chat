@@ -6,8 +6,6 @@ from django.http import JsonResponse
 from django.views.generic import TemplateView
 
 from bbb_chat import settings
-from redis_handler.connection import send
-from redis_handler.message_builder import build_message
 from redis_handler.state import State
 
 
@@ -50,16 +48,31 @@ class SendChatMessage(TemplateView):
             return JsonResponse(
                 {"success": False, "message": "Parameter user_name is mandatory but missing."},
                 status=400,
-                reason="Parameter meeting_id is mandatory but missing."
+                reason="Parameter user_name is mandatory but missing."
             )
         if "message" not in args:
             return JsonResponse(
                 {"success": False, "message": "Parameter message is mandatory but missing."},
                 status=400,
-                reason="Parameter meeting_id is mandatory but missing."
+                reason="Parameter message is mandatory but missing."
             )
 
-        send(build_message(args["meeting_id"], args["user_name"], args["message"]))
+        chat = State.instance.get(args["meeting_id"])
+        if chat:
+            if chat.chat_user_id:
+                user = args["user_name"]
+                chat.send(f"<h5>{user} wrote:</h5>"
+                          + args["message"])
+            else:
+                return JsonResponse(
+                    {"success": False, "message": "The chat user hasn't joined the meeting yet."},
+                    status=404
+                )
+        else:
+            return JsonResponse(
+                {"success": False, "message": "This meeting's chat wasn't started."},
+                status=404
+            )
 
 
 class StartChatForMeeting(TemplateView):
