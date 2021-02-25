@@ -7,6 +7,8 @@ from django.views.generic import TemplateView
 
 from bbb_chat import settings
 from redis_handler.state import State
+from redis_handler.connection import send as redis_send
+from redis_handler.message_builder import build_message
 
 
 def validate_request(args, method):
@@ -61,8 +63,9 @@ class SendChatMessage(TemplateView):
         if chat:
             if chat.chat_user_id:
                 user = args["user_name"]
-                chat.send(f"<h5>{user} wrote:</h5>"
-                          + args["message"])
+                redis_send(build_message(chat.meeting_id, chat.chat_user_id, chat.chat_user_name,
+                                         f"<h5>{user} wrote:</h5>"
+                                         + args["message"]))
             else:
                 return JsonResponse(
                     {"success": False, "message": "The chat user hasn't joined the meeting yet."},
