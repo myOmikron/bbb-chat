@@ -60,8 +60,11 @@ class SendChatMessage(TemplateView):
             if chat.chat_user_id:
                 user = args["user_name"]
                 redis_send(build_message(chat.meeting_id, chat.chat_user_id, chat.chat_user_name,
-                                         f"<h5>{user} wrote:</h5>"
+                                         f"<h4>{user} wrote:</h4>"
                                          + args["message"]))
+                return JsonResponse(
+                    {"success": True, "message": "Message sent successfully"}
+                )
             else:
                 return JsonResponse(
                     {"success": False, "message": "The chat user hasn't joined the meeting yet."},
