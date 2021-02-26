@@ -40,7 +40,7 @@ def on_chat_msg(header, body):
     if not chat:
         return
 
-    if not chat.callback_uri or not chat.callback_secret:
+    if not chat.callback_uri or not chat.callback_secret or chat.chat_user_id == header["userId"]:
         return
 
     params = {
@@ -61,13 +61,12 @@ def on_chat_msg(header, body):
 
 class RequestThread(Thread):
 
+    running: bool
     queue = Queue()
 
     def run(self):
-        self.running = True
         while self.running:
             uri, data = self.queue.get()
             requests.post(uri, data=data)
 
     def stop(self):
-        self.running = False
