@@ -1,5 +1,4 @@
 import logging
-import os
 from queue import Queue
 import json
 import hashlib
@@ -44,13 +43,12 @@ def on_chat_msg(header, body):
         return
 
     params = {
-        "meeting_id": header["meetingId"],
         "user_name": body["msg"]["sender"]["name"],
         "message": body["msg"]["message"]
     }
 
     params["checksum"] = hashlib.sha512((
-        os.path.basename(chat.callback_uri.rstrip("/"))
+        "sendChatMessage"
         + json.dumps(params)
         + chat.callback_secret
         + str(int(datetime.now().timestamp()))
@@ -70,3 +68,4 @@ class RequestThread(Thread):
             requests.post(uri, data=data)
 
     def stop(self):
+        self.running = False
