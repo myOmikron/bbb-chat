@@ -63,6 +63,7 @@ class RequestThread(Thread):
     queue = Queue()
 
     def run(self):
+        self.running = True
         while self.running:
             uri, data = self.queue.get()
             requests.post(uri, data=data)
