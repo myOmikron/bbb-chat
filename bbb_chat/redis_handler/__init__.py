@@ -15,6 +15,8 @@ class RedisStartupMiddleware:
         register_handler("UserLeftMeetingEvtMsg", on_leave)
         register_handler("GroupChatMessageBroadcastEvtMsg", on_chat_msg)
         threads = [RequestThread() for i in range(1)]
+        for thread in threads:
+            thread.start()
         StateLoader().start()
         startup()
         raise MiddlewareNotUsed("Good.Design")
