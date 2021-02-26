@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 def on_join(header, body):
     chat = State.instance.get(header["meetingId"])
-    if chat:
+    if chat and chat.chat_user_name == body["name"]:
         chat.chat_user_id = header["userId"]
         chat.save()
     else:
@@ -24,7 +24,7 @@ def on_join(header, body):
 
 def on_leave(header, _):
     chat = State.instance.get(header["meetingId"])
-    if chat:
+    if chat and chat.chat_user_id == header["userId"]:
         chat.chat_user_id = None
         chat.save()
     else:
