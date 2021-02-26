@@ -18,7 +18,7 @@ def validate_request(args, method):
     current_timestamp = int(datetime.now().timestamp())
     checksum = args["checksum"]
     del args["checksum"]
-    for i in range(settings.SHARED_SECRET_TIME_DELTA):
+    for i in range(0-settings.SHARED_SECRET_TIME_DELTA, settings.SHARED_SECRET_TIME_DELTA):
         tmp_timestamp = current_timestamp - i
         call = method + json.dumps(args)
         if hashlib.sha512((call + settings.SHARED_SECRET + str(tmp_timestamp)).encode("utf-8")).hexdigest() == checksum:
@@ -60,8 +60,11 @@ class SendChatMessage(TemplateView):
             if chat.chat_user_id:
                 user = args["user_name"]
                 redis_send(build_message(chat.meeting_id, chat.chat_user_id, chat.chat_user_name,
-                                         f"<h5>{user} wrote:</h5>"
+                                         f'<h4 style="margin-top: 1em; margin-bottom: 0">{user} wrote:</h4>'
                                          + args["message"]))
+                return JsonResponse(
+                    {"success": True, "message": "Message sent successfully"}
+                )
             else:
                 return JsonResponse(
                     {"success": False, "message": "The chat user hasn't joined the meeting yet."},
