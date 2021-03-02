@@ -19,14 +19,22 @@ def register_handler(event, func):
 
 def _receive(obj):
     message: dict = json.loads(obj["data"].decode())
-    header = message["core"]["header"]
-    body = message["core"]["body"]
-    logger.debug("Received redis message:\n"
-                 "header: " + str(header) + "\n"
-                 "body: " + str(body) + "\n")
+    try:
+        header = message["core"]["header"]
+        body = message["core"]["body"]
+        logger.debug("Received redis message:\n"
+                     "header: " + str(header) + "\n"
+                     "body: " + str(body) + "\n")
+        assert header["name"]
+    except KeyError:
+        logger.error("Malformed redis message: "+str(message))
+        return
 
     if header["name"] in HANDLERS:
-        HANDLERS[header["name"]](header, body)
+        try:
+            HANDLERS[header["name"]](header, body)
+        except Exception:
+            logger.exception("An exception occurred in the redis handler: "+header["name"])
     else:
         logger.debug("Event '"+str(header["name"])+"' has no handler")
 
