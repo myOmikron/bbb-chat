@@ -4,21 +4,24 @@ from threading import Thread
 from django.core.exceptions import MiddlewareNotUsed, AppRegistryNotReady
 from django.apps.registry import apps
 
-from redis_handler.connection import startup, register_handler
+from redis_handler.connection import RedisHandler
 from redis_handler.handlers import on_join, on_leave, on_chat_msg, RequestThread
 from redis_handler.state import State
 
 
 class RedisStartupMiddleware:
     def __init__(self, *args, **kwargs):
-        register_handler("UserJoinedMeetingEvtMsg", on_join)
-        register_handler("UserLeftMeetingEvtMsg", on_leave)
-        register_handler("GroupChatMessageBroadcastEvtMsg", on_chat_msg)
+        redis_handler = RedisHandler()
+        redis_handler.register("UserJoinedMeetingEvtMsg", on_join)
+        redis_handler.register("UserLeftMeetingEvtMsg", on_leave)
+        redis_handler.register("GroupChatMessageBroadcastEvtMsg", on_chat_msg)
+        redis_handler.start()
+
         threads = [RequestThread() for i in range(1)]
         for thread in threads:
             thread.start()
+
         StateLoader().start()
-        startup()
         raise MiddlewareNotUsed("Good.Design")
 
 
