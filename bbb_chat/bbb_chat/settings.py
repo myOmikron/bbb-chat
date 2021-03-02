@@ -124,3 +124,4 @@ STATIC_URL = '/static/'
 
 SHARED_SECRET = "change_me"
 SHARED_SECRET_TIME_DELTA = 5
+MESSAGE_TEMPLATE = '<h4 style="margin-top: 1em; margin-bottom: 0">{user} wrote:</h4>{message}'

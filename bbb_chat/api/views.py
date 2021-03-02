@@ -18,7 +18,7 @@ def validate_request(args, method):
     current_timestamp = int(datetime.now().timestamp())
     checksum = args["checksum"]
     del args["checksum"]
-    for i in range(0-settings.SHARED_SECRET_TIME_DELTA, settings.SHARED_SECRET_TIME_DELTA):
+    for i in range(0 - settings.SHARED_SECRET_TIME_DELTA, settings.SHARED_SECRET_TIME_DELTA):
         tmp_timestamp = current_timestamp - i
         call = method + json.dumps(args)
         if hashlib.sha512((call + settings.SHARED_SECRET + str(tmp_timestamp)).encode("utf-8")).hexdigest() == checksum:
@@ -58,10 +58,10 @@ class SendChatMessage(TemplateView):
         chat = State.instance.get(meeting_id)
         if chat:
             if chat.chat_user_id:
-                user = args["user_name"]
-                RedisHandler.instance.send(build_message(chat.meeting_id, chat.chat_user_id, chat.chat_user_name,
-                                           f'<h4 style="margin-top: 1em; margin-bottom: 0">{user} wrote:</h4>'
-                                           + args["message"]))
+                RedisHandler.instance.send(build_message(
+                    chat.meeting_id, chat.chat_user_id, chat.chat_user_name,
+                    settings.MESSAGE_TEMPLATE.format(user=args["user_name"], message=args["message"])
+                ))
                 return JsonResponse(
                     {"success": True, "message": "Message sent successfully"}
                 )
