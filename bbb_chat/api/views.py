@@ -7,7 +7,7 @@ from django.views.generic import TemplateView
 
 from bbb_chat import settings
 from redis_handler.state import State
-from redis_handler.connection import send as redis_send
+from redis_handler.connection import RedisHandler
 from redis_handler.message_builder import build_message
 
 
@@ -59,9 +59,9 @@ class SendChatMessage(TemplateView):
         if chat:
             if chat.chat_user_id:
                 user = args["user_name"]
-                redis_send(build_message(chat.meeting_id, chat.chat_user_id, chat.chat_user_name,
-                                         f'<h4 style="margin-top: 1em; margin-bottom: 0">{user} wrote:</h4>'
-                                         + args["message"]))
+                RedisHandler.instance.send(build_message(chat.meeting_id, chat.chat_user_id, chat.chat_user_name,
+                                           f'<h4 style="margin-top: 1em; margin-bottom: 0">{user} wrote:</h4>'
+                                           + args["message"]))
                 return JsonResponse(
                     {"success": True, "message": "Message sent successfully"}
                 )

@@ -12,6 +12,7 @@ from redis_handler.state import State
 class RedisStartupMiddleware:
     def __init__(self, *args, **kwargs):
         redis_handler = RedisHandler()
+        RedisHandler.instance = redis_handler
         redis_handler.register("UserJoinedMeetingEvtMsg", on_join)
         redis_handler.register("UserLeftMeetingEvtMsg", on_leave)
         redis_handler.register("GroupChatMessageBroadcastEvtMsg", on_chat_msg)

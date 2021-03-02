@@ -9,6 +9,8 @@ logger = logging.getLogger(__name__)
 
 class RedisHandler:
 
+    instance = None
+
     def __init__(self, host: str = "localhost", port: int = 6379, db: int = 0):
         self.connection = redis.Redis(host=host, port=port, db=db)
         self.pubsub = self.connection.pubsub(ignore_subscribe_messages=True)
