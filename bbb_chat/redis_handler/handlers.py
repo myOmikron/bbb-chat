@@ -4,6 +4,7 @@ import json
 from threading import Thread
 
 import requests
+from django.conf import settings
 from rc_protocol import get_checksum
 
 from redis_handler.state import State
@@ -60,7 +61,7 @@ class RequestThread(Thread):
         self.running = True
         while self.running:
             uri, data = self.queue.get()
-            requests.post(uri, data=data, headers={"user-agent": "bbb-chat"})
+            requests.post(uri, data=data, headers={"user-agent": "bbb-chat"}, verify=settings.VERIFY_SSL_CERTS)
 
     def stop(self):
         self.running = False

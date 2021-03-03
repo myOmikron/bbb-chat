@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 from pathlib import Path
 import logging
 
+import urllib3
+
 logging.basicConfig(level=logging.INFO)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -128,3 +130,7 @@ STATIC_URL = '/static/'
 SHARED_SECRET = "change_me"
 SHARED_SECRET_TIME_DELTA = 5
 MESSAGE_TEMPLATE = '<h4 style="margin-top: 1em; margin-bottom: 0">{user} wrote:</h4>{message}'
+
+VERIFY_SSL_CERTS = True
+if not VERIFY_SSL_CERTS:
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
