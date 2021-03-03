@@ -17,7 +17,8 @@ from django.urls import path
 from api.views import *
 
 urlpatterns = [
-    path('sendChatMessage/<str:meeting_id>', SendChatMessage.as_view()),
-    path('startChatForMeeting', StartChatForMeeting.as_view()),
-    path('endChatForMeeting', EndChatForMeeting.as_view()),
+    path('runningChats', RunningChats.as_view()),
+    path('startChat', StartChat.as_view()),
+    path('sendMessage', SendMessage.as_view()),
+    path('endChat', EndChat.as_view()),
 ]

@@ -1,11 +1,10 @@
 import logging
 from queue import Queue
 import json
-import hashlib
-from datetime import datetime
 from threading import Thread
 
 import requests
+from rc_protocol import get_checksum
 
 from redis_handler.state import State
 
@@ -44,17 +43,12 @@ def on_chat_msg(header, body):
 
     params = {
         "user_name": body["msg"]["sender"]["name"],
-        "message": body["msg"]["message"]
+        "message": body["msg"]["message"],
+        "chat_id": chat.callback_id,
     }
+    params["checksum"] = get_checksum(params, chat.callback_secret, "sendMessage")
 
-    params["checksum"] = hashlib.sha512((
-        "sendChatMessage"
-        + json.dumps(params)
-        + chat.callback_secret
-        + str(int(datetime.now().timestamp()))
-    ).encode("utf-8")).hexdigest()
-
-    RequestThread.queue.put((chat.callback_uri, json.dumps(params)))
+    RequestThread.queue.put((f"{chat.callback_uri}/sendMessage", json.dumps(params)))
 
 
 class RequestThread(Thread):

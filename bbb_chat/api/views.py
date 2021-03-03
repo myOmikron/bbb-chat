@@ -1,9 +1,8 @@
 import json
-import hashlib
-from datetime import datetime
 
 from django.http import JsonResponse
 from django.views.generic import TemplateView
+from rc_protocol import validate_checksum
 
 from bbb_chat import settings
 from redis_handler.state import State
@@ -11,56 +10,72 @@ from redis_handler.connection import RedisHandler
 from redis_handler.message_builder import build_message
 
 
-def validate_request(args, method):
-    if "checksum" not in args:
-        return {"success": False, "message": "No checksum was given."}
-    ret = {"success": False, "message": "Checksum was incorrect."}
-    current_timestamp = int(datetime.now().timestamp())
-    checksum = args["checksum"]
-    del args["checksum"]
-    for i in range(0 - settings.SHARED_SECRET_TIME_DELTA, settings.SHARED_SECRET_TIME_DELTA):
-        tmp_timestamp = current_timestamp - i
-        call = method + json.dumps(args)
-        if hashlib.sha512((call + settings.SHARED_SECRET + str(tmp_timestamp)).encode("utf-8")).hexdigest() == checksum:
-            ret["success"] = True
-            ret["message"] = "Checksum is correct"
-            break
-    return ret
+class _PostApiPoint(TemplateView):
 
+    required_parameters: list
+    endpoint: str
 
-class SendChatMessage(TemplateView):
-
-    def post(self, request, meeting_id="", *args, **kwargs):
+    def post(self, request, *args, **kwargs):
+        # Decode json
         try:
-            args = json.loads(request.body)
+            parameters = json.loads(request.body)
         except json.decoder.JSONDecodeError:
             return JsonResponse(
                 {"success": False, "message": "Decoding data failed"},
                 status=400,
                 reason="Decoding data failed"
             )
-        validated = validate_request(args, "sendChatMessage")
-        if not validated["success"]:
-            return JsonResponse(validated, status=400)
-        if "user_name" not in args:
+
+        # Validate checksum
+        try:
+            if not validate_checksum(parameters, settings.SHARED_SECRET,
+                                     self.endpoint, settings.SHARED_SECRET_TIME_DELTA):
+                return JsonResponse(
+                    {"success": False, "message": "Checksum was incorrect."},
+                    status=400,
+                    reason="Checksum was incorrect."
+                )
+        except ValueError:
             return JsonResponse(
-                {"success": False, "message": "Parameter user_name is mandatory but missing."},
+                {"success": False, "message": "No checksum was given."},
                 status=400,
-                reason="Parameter user_name is mandatory but missing."
-            )
-        if "message" not in args:
-            return JsonResponse(
-                {"success": False, "message": "Parameter message is mandatory but missing."},
-                status=400,
-                reason="Parameter message is mandatory but missing."
+                reason="No checksum was given."
             )
 
-        chat = State.instance.get(meeting_id)
+        # Check required parameters
+        for param in self.required_parameters:
+            if param not in parameters:
+                return JsonResponse(
+                    {"success": False, "message": f"Parameter {param} is mandatory but missing."},
+                    status=400,
+                    reason=f"Parameter {param} is mandatory but missing."
+                )
+
+        # Hand over to subclass
+        return self._post(request, parameters, *args, **kwargs)
+
+    def _post(self, request, parameters, *args, **kwargs):
+        return NotImplemented
+
+
+class RunningChats(TemplateView):
+
+    def post(self, request, *args, **kwargs):
+        return NotImplemented
+
+
+class SendMessage(_PostApiPoint):
+
+    endpoint = "sendMessage"
+    required_parameters = ["chat_id", "message", "user_name"]
+
+    def _post(self, request, parameters, *args, **kwargs):
+        chat = State.instance.get(parameters["chat_id"])
         if chat:
             if chat.chat_user_id:
                 RedisHandler.instance.send(build_message(
                     chat.meeting_id, chat.chat_user_id, chat.chat_user_name,
-                    settings.MESSAGE_TEMPLATE.format(user=args["user_name"], message=args["message"])
+                    settings.MESSAGE_TEMPLATE.format(user=parameters["user_name"], message=parameters["message"])
                 ))
                 return JsonResponse(
                     {"success": True, "message": "Message sent successfully"}
@@ -77,93 +92,70 @@ class SendChatMessage(TemplateView):
             )
 
 
-class StartChatForMeeting(TemplateView):
+class StartChat(_PostApiPoint):
 
-    def post(self, request, *args, **kwargs):
-        try:
-            args = json.loads(request.body)
-        except json.decoder.JSONDecodeError:
-            return JsonResponse(
-                {"success": False, "message": "Decoding data failed"},
-                status=400,
-                reason="Decoding data failed"
-            )
-        validated = validate_request(args, "startChatForMeeting")
-        if not validated["success"]:
-            return JsonResponse(validated, status=400)
-        if "meeting_id" not in args:
-            return JsonResponse(
-                {"success": False, "message": "Parameter meeting_id is mandatory but missing."},
-                status=400,
-                reason="Parameter meeting_id is mandatory but missing."
-            )
-        if "chat_user" not in args:
-            return JsonResponse(
-                {"success": False, "message": "Parameter chat_user is mandatory but missing."},
-                status=400,
-                reason="Parameter meeting_id is mandatory but missing."
-            )
-        if "callback_uri" not in args:
-            if "callback_secret" in args:
-                return JsonResponse(
-                    {
-                        "success": False,
-                        "message": "Parameter callback_uri is mandatory when specifying callback_secret, but missing."
-                    },
-                    status=400,
-                    reason="Parameter meeting_id is mandatory but missing."
-                )
+    endpoint = "startChat"
+    required_parameters = ["chat_id", "chat_user"]
 
-        if "callback_secret" not in args:
-            if "callback_uri" in args:
-                return JsonResponse(
-                    {
-                        "success": False,
-                        "message": "Parameter callback_secret is mandatory when specifying callback_uri, but missing."
-                    },
-                    status=400,
-                    reason="Parameter meeting_id is mandatory but missing."
-                )
+    def _post(self, request, parameters, *args, **kwargs):
+        callback_params = ["callback_uri", "callback_secret", "callback_id"]
+        missing = []
+        for param in callback_params:
+            if param not in parameters:
+                missing.append(param)
 
-        if State.instance.get(args["meeting_id"]):
+        if len(missing) == 1:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "message": f"Parameter {missing[0]} is mandatory when enabling callbacks, but is missing"
+                },
+                status=403,
+                reason=f"Parameter {missing[0]} is mandatory when enabling callbacks, but is missing"
+            )
+        elif len(missing) == 2:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "message": f"Parameters {missing[0]} and {missing[1]} "
+                               f"are mandatory when enabling callbacks, but are missing"
+                },
+                status=403,
+                reason=f"Parameters {missing[0]} and {missing[1]} "
+                       f"are mandatory when enabling callbacks, but are missing"
+            )
+
+        if State.instance.get(parameters["chat_id"]):
             return JsonResponse(
                 {"success": False, "message": "Chat is already registered"},
                 status=304,
                 reason="Chat is already registered"
             )
         else:
-            State.instance.add(
-                meeting_id=args["meeting_id"],
-                chat_user=args["chat_user"],
-                callback_uri="" if "callback_uri" not in args else args["callback_uri"],
-                callback_secret="" if "callback_secret" not in args else args["callback_secret"],
-            )
+            if len(missing) == 0:
+                State.instance.add(
+                    meeting_id=parameters["chat_id"],
+                    chat_user=parameters["chat_user"],
+                    callback_uri=parameters["callback_uri"],
+                    callback_secret=parameters["callback_secret"],
+                    callback_id=parameters["callback_id"],
+                )
+            else:
+                State.instance.add(
+                    meeting_id=parameters["chat_id"],
+                    chat_user=parameters["chat_user"]
+                )
             return JsonResponse({"success": True, "message": "Chat registered successfully"})
 
 
-class EndChatForMeeting(TemplateView):
+class EndChat(_PostApiPoint):
 
-    def post(self, request, *args, **kwargs):
-        try:
-            args = json.loads(request.body)
-        except json.decoder.JSONDecodeError:
-            return JsonResponse(
-                {"success": False, "message": "Decoding data failed"},
-                status=400,
-                reason="Decoding data failed"
-            )
-        validated = validate_request(args, "endChatForMeeting")
-        if not validated["success"]:
-            return JsonResponse(validated, status=400)
-        if "meeting_id" not in args:
-            return JsonResponse(
-                {"success": False, "message": " Parameter meeting_id is mandatory but missing."},
-                status=400,
-                reason="Parameter meeting_id is mandatory but missing."
-            )
+    endpoint = "endChat"
+    required_parameters = ["chat_id"]
 
-        if State.instance.get(args["meeting_id"]):
-            State.instance.remove(args["meeting_id"])
+    def _post(self, request, parameters, *args, **kwargs):
+        if State.instance.get(parameters["chat_id"]):
+            State.instance.remove(parameters["chat_id"])
             return JsonResponse({"success": True, "message": "Chat was successfully ended"})
         else:
             return JsonResponse({"success": False, "message": "Chat was not found"}, status=404,
