@@ -8,6 +8,7 @@ from bbb_chat import settings
 from redis_handler.state import State
 from redis_handler.connection import RedisHandler
 from redis_handler.message_builder import build_message
+from api.models import Chat
 
 
 class _PostApiPoint(TemplateView):
@@ -60,8 +61,11 @@ class _PostApiPoint(TemplateView):
 
 class RunningChats(TemplateView):
 
-    def post(self, request, *args, **kwargs):
-        return NotImplemented
+    def get(self, request, *args, **kwargs):
+        return JsonResponse({
+            "count": Chat.objects.count(),
+            "chat_ids": [chat.meeting_id for chat in Chat.objects.all()]
+        })
 
 
 class SendMessage(_PostApiPoint):
