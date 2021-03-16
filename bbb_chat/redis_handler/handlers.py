@@ -1,6 +1,7 @@
 import logging
 from queue import Queue
 import json
+import os
 from threading import Thread
 
 import requests
@@ -49,7 +50,7 @@ def on_chat_msg(header, body):
     }
     params["checksum"] = get_checksum(params, chat.callback_secret, "sendMessage")
 
-    RequestThread.queue.put((f"{chat.callback_uri}/sendMessage", json.dumps(params)))
+    RequestThread.queue.put((os.path.join(chat.callback_uri, "sendMessage"), json.dumps(params)))
 
 
 class RequestThread(Thread):
