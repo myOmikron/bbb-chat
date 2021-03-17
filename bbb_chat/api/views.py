@@ -64,7 +64,7 @@ class RunningChats(TemplateView):
     def get(self, request, *args, **kwargs):
         return JsonResponse({
             "count": Chat.objects.count(),
-            "chat_ids": [chat.meeting_id for chat in Chat.objects.all()]
+            "chat_ids": [chat.external_meeting_id for chat in Chat.objects.all()]
         })
 
 
@@ -78,7 +78,7 @@ class SendMessage(_PostApiPoint):
         if chat:
             if chat.chat_user_id:
                 RedisHandler.instance.send(build_message(
-                    chat.meeting_id, chat.chat_user_id, chat.chat_user_name,
+                    chat.internal_meeting_id, chat.chat_user_id, chat.chat_user_name,
                     settings.MESSAGE_TEMPLATE.format(user=parameters["user_name"], message=parameters["message"])
                 ))
                 return JsonResponse(
