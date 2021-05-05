@@ -53,6 +53,25 @@ def on_chat_msg(header, body):
     RequestThread.queue.put((os.path.join(chat.callback_uri, "sendMessage"), json.dumps(params)))
 
 
+def on_clear_chat(header, body):
+    if body["chatId"] != "MAIN-PUBLIC-GROUP-CHAT":
+        return
+
+    chat = State.instance.get(header["meetingId"])
+    if not chat:
+        return
+
+    if not chat.callback_uri or not chat.callback_secret:
+        return
+
+    params = {
+        "chat_id": chat.callback_id,
+    }
+    params["checksum"] = get_checksum(params, chat.callback_secret, "clearChat")
+
+    RequestThread.queue.put((os.path.join(chat.callback_uri, "clearChat"), json.dumps(params)))
+
+
 class RequestThread(Thread):
 
     running: bool
