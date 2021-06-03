@@ -6,7 +6,7 @@ After=redis-server.service
 WantedBy=multi-user.target
 
 [Service]
-ExecStart=/home/bbb-chat/bbb-chat/venv/bin/python3.9 manage.py runserver 127.0.0.1:8002
+ExecStart=/home/bbb-chat/bbb-chat/venv/bin/python3 manage.py runserver 127.0.0.1:8002
 User=bbb-chat
 WorkingDirectory=/home/bbb-chat/bbb-chat/bbb_chat/
 Restart=always
