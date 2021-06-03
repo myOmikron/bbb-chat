@@ -133,7 +133,7 @@ BBB_SECRET = ""
 
 SHARED_SECRET = "change_me"
 SHARED_SECRET_TIME_DELTA = 5
-MESSAGE_TEMPLATE = '<h4 style="margin-top: 1em; margin-bottom: 0">{user} wrote:</h4>{message}'
+MESSAGE_TEMPLATE = '<h4 style="margin-top: 1em; margin-bottom: 0">{user} schrieb:</h4>{message}'
 
 VERIFY_SSL_CERTS = True
 if not VERIFY_SSL_CERTS:
