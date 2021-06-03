@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.1/ref/settings/
 """
 
+from socket import gethostname
 from pathlib import Path
 import logging
 
@@ -127,8 +128,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-with open("/etc/hostname") as f:
-    BBB_URL = "https://"+f.read().strip()+"/bigbluebutton/api"
+BBB_URL = "https://"+gethostname()+"/bigbluebutton/api"
 BBB_SECRET = ""
 
 SHARED_SECRET = "change_me"
