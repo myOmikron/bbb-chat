@@ -11,7 +11,6 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 """
 
 from pathlib import Path
-from socket import getfqdn
 import logging
 
 import urllib3
@@ -128,7 +127,8 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-BBB_URL = "https://"+getfqdn()+"/bigbluebutton/api"
+with open("/etc/hostname") as f:
+    BBB_URL = "https://"+f.read().strip()+"/bigbluebutton/api"
 BBB_SECRET = ""
 
 SHARED_SECRET = "change_me"
