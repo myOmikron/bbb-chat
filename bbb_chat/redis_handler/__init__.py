@@ -2,7 +2,6 @@ from django.core.exceptions import MiddlewareNotUsed
 
 from redis_handler.connection import RedisHandler
 from redis_handler.handlers import on_join, on_leave, on_chat_msg, on_chat_clear, RequestThread
-from redis_handler.state import State
 
 
 class RedisStartupMiddleware:
