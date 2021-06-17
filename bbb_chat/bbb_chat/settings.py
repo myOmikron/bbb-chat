@@ -10,8 +10,8 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.1/ref/settings/
 """
 
+from socket import gethostname
 from pathlib import Path
-from socket import getfqdn
 import logging
 
 import urllib3
@@ -33,6 +33,7 @@ DEBUG = False
 
 ALLOWED_HOSTS = [
     "127.0.0.1",
+    "localhost",
 ]
 
 # Application definition
@@ -128,7 +129,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-BBB_URL = "https://"+getfqdn()+"/bigbluebutton/api"
+BBB_URL = "https://"+gethostname()+"/bigbluebutton/api"
 BBB_SECRET = ""
 
 SHARED_SECRET = "change_me"

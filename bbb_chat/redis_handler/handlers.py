@@ -53,7 +53,7 @@ def on_chat_msg(header, body):
     RequestThread.queue.put((os.path.join(chat.callback_uri, "sendMessage"), json.dumps(params)))
 
 
-def on_clear_chat(header, body):
+def on_chat_clear(header, body):
     if body["chatId"] != "MAIN-PUBLIC-GROUP-CHAT":
         return
 
