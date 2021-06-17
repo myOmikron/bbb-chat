@@ -1,12 +1,7 @@
-import time
-from threading import Thread
-
-from django.core.exceptions import MiddlewareNotUsed, AppRegistryNotReady
-from django.apps.registry import apps
+from django.core.exceptions import MiddlewareNotUsed
 
 from redis_handler.connection import RedisHandler
 from redis_handler.handlers import on_join, on_leave, on_chat_msg, on_clear_chat, RequestThread
-from redis_handler.state import State
 
 
 class RedisStartupMiddleware:
@@ -23,16 +18,4 @@ class RedisStartupMiddleware:
         for thread in threads:
             thread.start()
 
-        StateLoader().start()
         raise MiddlewareNotUsed("Good.Design")
-
-
-class StateLoader(Thread):
-    def run(self):
-        while True:
-            try:
-                apps.check_models_ready()
-                State.instance = State()
-                break
-            except AppRegistryNotReady:
-                time.sleep(1)

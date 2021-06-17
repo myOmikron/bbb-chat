@@ -8,14 +8,14 @@ import requests
 from django.conf import settings
 from rc_protocol import get_checksum
 
-from redis_handler.state import State
+from api.models import Chat
 
 
 logger = logging.getLogger(__name__)
 
 
 def on_join(header, body):
-    chat = State.instance.get(header["meetingId"])
+    chat = Chat.objects.get(header["meetingId"])
     if chat and chat.chat_user_name == body["name"]:
         chat.chat_user_id = header["userId"]
         chat.save()
@@ -24,7 +24,7 @@ def on_join(header, body):
 
 
 def on_leave(header, _):
-    chat = State.instance.get(header["meetingId"])
+    chat = Chat.objects.get(header["meetingId"])
     if chat and chat.chat_user_id == header["userId"]:
         chat.chat_user_id = None
         chat.save()
@@ -36,7 +36,7 @@ def on_chat_msg(header, body):
     if body["chatId"] != "MAIN-PUBLIC-GROUP-CHAT":
         return
 
-    chat = State.instance.get(header["meetingId"])
+    chat = Chat.objects.get(header["meetingId"])
     if not chat:
         return
 
@@ -57,7 +57,7 @@ def on_clear_chat(header, body):
     if body["chatId"] != "MAIN-PUBLIC-GROUP-CHAT":
         return
 
-    chat = State.instance.get(header["meetingId"])
+    chat = Chat.objects.get(header["meetingId"])
     if not chat:
         return
 

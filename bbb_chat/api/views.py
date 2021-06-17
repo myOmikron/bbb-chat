@@ -1,14 +1,17 @@
 import json
 
+from bigbluebutton_api_python import BigBlueButton
 from django.http import JsonResponse
 from django.views.generic import TemplateView
 from rc_protocol import validate_checksum
 
 from bbb_chat import settings
-from redis_handler.state import State
 from redis_handler.connection import RedisHandler
 from redis_handler.message_builder import build_message
 from api.models import Chat
+
+
+bbb = BigBlueButton(settings.BBB_URL, settings.BBB_SECRET)
 
 
 class _PostApiPoint(TemplateView):
@@ -74,7 +77,7 @@ class SendMessage(_PostApiPoint):
     required_parameters = ["chat_id", "message", "user_name"]
 
     def _post(self, request, parameters, *args, **kwargs):
-        chat = State.instance.get(parameters["chat_id"])
+        chat = Chat.objects.get(parameters["chat_id"])
         if chat:
             if chat.chat_user_id:
                 RedisHandler.instance.send(build_message(
@@ -129,24 +132,27 @@ class StartChat(_PostApiPoint):
                        f"are mandatory when enabling callbacks, but are missing"
             )
 
-        if State.instance.get(parameters["chat_id"]):
+        if Chat.objects.get(parameters["chat_id"]):
             return JsonResponse(
                 {"success": False, "message": "Chat is already registered"},
                 status=304,
                 reason="Chat is already registered"
             )
         else:
+            internal_meeting_id = bbb.get_meeting_info(parameters["chat_id"]).get_meetinginfo().get_internal_meetingid()
             if len(missing) == 0:
-                State.instance.add(
+                Chat.objects.create(
                     meeting_id=parameters["chat_id"],
+                    internal_meeting_id=internal_meeting_id,
                     chat_user=parameters["chat_user"],
                     callback_uri=parameters["callback_uri"],
                     callback_secret=parameters["callback_secret"],
                     callback_id=parameters["callback_id"],
                 )
             else:
-                State.instance.add(
+                Chat.objects.create(
                     meeting_id=parameters["chat_id"],
+                    internal_meeting_id=internal_meeting_id,
                     chat_user=parameters["chat_user"]
                 )
             return JsonResponse({"success": True, "message": "Chat registered successfully"})
@@ -158,8 +164,9 @@ class EndChat(_PostApiPoint):
     required_parameters = ["chat_id"]
 
     def _post(self, request, parameters, *args, **kwargs):
-        if State.instance.get(parameters["chat_id"]):
-            State.instance.remove(parameters["chat_id"])
+        chat = Chat.objects.get(parameters["chat_id"])
+        if chat:
+            chat.delete()
             return JsonResponse({"success": True, "message": "Chat was successfully ended"})
         else:
             return JsonResponse({"success": False, "message": "Chat was not found"}, status=404,
