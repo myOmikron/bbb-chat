@@ -14,7 +14,8 @@ class RedisHandler:
     def __init__(self, host: str = "localhost", port: int = 6379, db: int = 0):
         self.connection = redis.Redis(host=host, port=port, db=db)
         self.pubsub = self.connection.pubsub(ignore_subscribe_messages=True)
-        self.pubsub.subscribe(**{"from-akka-apps-redis-channel": self._receive})
+        self.pubsub.subscribe(**{"from-akka-apps-redis-channel": self._receive,
+                                 "to-akka-apps-redis-channel": self._receive})
         self.thread = None
         self.handlers = {}
 
