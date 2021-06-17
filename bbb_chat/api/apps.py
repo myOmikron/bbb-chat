@@ -16,3 +16,5 @@ class ApiConfig(AppConfig):
                 Chat.objects.external[chat.external_meeting_id] = chat
         except OperationalError:
             logging.exception("Missing migrations?")
+
+        Chat.objects.register_signals()
