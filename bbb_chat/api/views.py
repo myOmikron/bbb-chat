@@ -142,7 +142,7 @@ class StartChat(_PostApiPoint):
             internal_meeting_id = bbb.get_meeting_info(parameters["chat_id"]).get_meetinginfo().get_internal_meetingid()
             if len(missing) == 0:
                 Chat.objects.create(
-                    meeting_id=parameters["chat_id"],
+                    external_meeting_id=parameters["chat_id"],
                     internal_meeting_id=internal_meeting_id,
                     chat_user=parameters["chat_user"],
                     callback_uri=parameters["callback_uri"],
@@ -151,7 +151,7 @@ class StartChat(_PostApiPoint):
                 )
             else:
                 Chat.objects.create(
-                    meeting_id=parameters["chat_id"],
+                    external_meeting_id=parameters["chat_id"],
                     internal_meeting_id=internal_meeting_id,
                     chat_user=parameters["chat_user"]
                 )
