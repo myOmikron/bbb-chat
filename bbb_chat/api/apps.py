@@ -2,6 +2,10 @@ import logging
 
 from django.apps import AppConfig
 from django.db import OperationalError
+from django.db.models.signals import post_save, pre_delete
+
+from redis_sync.connection import RedisHandler
+from redis_sync.model_signals import ModelSignalHandler
 
 
 class ApiConfig(AppConfig):
@@ -18,3 +22,8 @@ class ApiConfig(AppConfig):
             logging.exception("Missing migrations?")
 
         Chat.objects.register_signals()
+
+        rh = RedisHandler()
+        msh = ModelSignalHandler(rh)
+        msh.register(Chat, [post_save, pre_delete])
+        rh.start()
