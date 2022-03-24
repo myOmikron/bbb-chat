@@ -62,7 +62,11 @@ class RequestThread(Thread):
         self.running = True
         while self.running:
             uri, data = self.queue.get()
-            requests.post(uri, data=data, headers={"user-agent": "bbb-chat"}, verify=settings.VERIFY_SSL_CERTS)
+            requests.post(
+                uri, data=data, headers={"user-agent": "bbb-chat"},
+                verify=settings.VERIFY_SSL_CERTS,
+                timeout=0.1
+            )
 
     def stop(self):
         self.running = False
