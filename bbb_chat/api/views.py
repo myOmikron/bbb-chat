@@ -1,65 +1,15 @@
-import json
-
 from django.http import JsonResponse
-from django.views.generic import TemplateView
-from rc_protocol import validate_checksum
+from django.views import View
 
 from bbb_chat import settings
+from bbb_common_api.views import PostApiPoint
 from redis_handler.state import State
 from redis_handler.connection import RedisHandler
 from redis_handler.message_builder import build_message
 from api.models import Chat
 
 
-class _PostApiPoint(TemplateView):
-
-    required_parameters: list
-    endpoint: str
-
-    def post(self, request, *args, **kwargs):
-        # Decode json
-        try:
-            parameters = json.loads(request.body)
-        except json.decoder.JSONDecodeError:
-            return JsonResponse(
-                {"success": False, "message": "Decoding data failed"},
-                status=400,
-                reason="Decoding data failed"
-            )
-
-        # Validate checksum
-        try:
-            if not validate_checksum(parameters, settings.SHARED_SECRET,
-                                     self.endpoint, settings.SHARED_SECRET_TIME_DELTA):
-                return JsonResponse(
-                    {"success": False, "message": "Checksum was incorrect."},
-                    status=400,
-                    reason="Checksum was incorrect."
-                )
-        except ValueError:
-            return JsonResponse(
-                {"success": False, "message": "No checksum was given."},
-                status=400,
-                reason="No checksum was given."
-            )
-
-        # Check required parameters
-        for param in self.required_parameters:
-            if param not in parameters:
-                return JsonResponse(
-                    {"success": False, "message": f"Parameter {param} is mandatory but missing."},
-                    status=400,
-                    reason=f"Parameter {param} is mandatory but missing."
-                )
-
-        # Hand over to subclass
-        return self._post(request, parameters, *args, **kwargs)
-
-    def _post(self, request, parameters, *args, **kwargs):
-        return NotImplemented
-
-
-class RunningChats(TemplateView):
+class RunningChats(View):
 
     def get(self, request, *args, **kwargs):
         return JsonResponse({
@@ -68,12 +18,12 @@ class RunningChats(TemplateView):
         })
 
 
-class SendMessage(_PostApiPoint):
+class SendMessage(PostApiPoint):
 
     endpoint = "sendMessage"
     required_parameters = ["chat_id", "message", "user_name"]
 
-    def _post(self, request, parameters, *args, **kwargs):
+    def safe_post(self, request, parameters, *args, **kwargs):
         chat = State.instance.get(parameters["chat_id"])
         if chat:
             if chat.chat_user_id:
@@ -96,12 +46,12 @@ class SendMessage(_PostApiPoint):
             )
 
 
-class StartChat(_PostApiPoint):
+class StartChat(PostApiPoint):
 
     endpoint = "startChat"
     required_parameters = ["chat_id", "chat_user"]
 
-    def _post(self, request, parameters, *args, **kwargs):
+    def safe_post(self, request, parameters, *args, **kwargs):
         callback_params = ["callback_uri", "callback_secret", "callback_id"]
         missing = []
         for param in callback_params:
@@ -152,12 +102,12 @@ class StartChat(_PostApiPoint):
             return JsonResponse({"success": True, "message": "Chat registered successfully"})
 
 
-class EndChat(_PostApiPoint):
+class EndChat(PostApiPoint):
 
     endpoint = "endChat"
     required_parameters = ["chat_id"]
 
-    def _post(self, request, parameters, *args, **kwargs):
+    def safe_post(self, request, parameters, *args, **kwargs):
         if State.instance.get(parameters["chat_id"]):
             State.instance.remove(parameters["chat_id"])
             return JsonResponse({"success": True, "message": "Chat was successfully ended"})
